@@ -37,6 +37,7 @@ function AppRoutes() {
         <Route path="/progress" element={<Progress />} />
         <Route path="/goals" element={<Goals />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/session/new" element={<Session />} />
         <Route path="/session/:id" element={<Session />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
