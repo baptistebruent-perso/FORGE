@@ -12,31 +12,40 @@ export function useWorkouts() {
 
   const refetch = async () => {
     setLoading(true)
-    const { data } = await supabase
-      .from('workouts')
-      .select('*, exercises:exercises_template(*)')
-      .order('order_index')
-    if (data) {
-      setWorkouts(
-        data.map((w) => ({
-          ...w,
-          exercises: [...(w.exercises ?? [])].sort((a, b) => a.order_index - b.order_index),
-        }))
-      )
+    try {
+      const { data } = await supabase
+        .from('workouts')
+        .select('*, exercises:exercises_template(*)')
+        .order('order_index')
+      if (data) {
+        setWorkouts(
+          data.map((w) => ({
+            ...w,
+            exercises: [...(w.exercises ?? [])].sort((a, b) => a.order_index - b.order_index),
+          }))
+        )
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   useEffect(() => { refetch() }, [])
 
-  const createWorkout = async (name: string, dayOfWeek?: number) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+  const createWorkout = async (name: string, dayOfWeek?: number): Promise<Error | null> => {
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) return authError ?? { message: 'Non authentifié. Reconnecte-toi.', name: 'AuthError' } as Error
+
+    const { count } = await supabase
+      .from('workouts')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+
     const { error } = await supabase.from('workouts').insert({
       user_id: user.id,
       name,
       day_of_week: dayOfWeek ?? null,
-      order_index: workouts.length,
+      order_index: count ?? workouts.length,
     })
     if (!error) await refetch()
     return error

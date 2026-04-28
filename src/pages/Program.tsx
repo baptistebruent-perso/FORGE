@@ -38,9 +38,14 @@ function WorkoutModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    await onSubmit({ name, dayOfWeek: day })
-    setSaving(false)
-    onClose()
+    try {
+      await onSubmit({ name, dayOfWeek: day })
+      onClose()
+    } catch {
+      // error handling is done by the parent via useToast
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -127,9 +132,14 @@ function ExerciseModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaving(true)
-    await onSubmit(form)
-    setSaving(false)
-    onClose()
+    try {
+      await onSubmit(form)
+      onClose()
+    } catch {
+      // error handling is done by the parent via useToast
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -178,7 +188,10 @@ function ExerciseModal({
             rows={2}
           />
         </div>
-        <Button type="submit" size="lg" disabled={saving || !form.name.trim()}>
+        {form.target_reps_min > form.target_reps_max && (
+          <p className="text-error text-xs">Reps min doit être ≤ reps max</p>
+        )}
+        <Button type="submit" size="lg" disabled={saving || !form.name.trim() || form.target_reps_min > form.target_reps_max}>
           {saving ? '...' : 'Enregistrer'}
         </Button>
       </form>
@@ -238,6 +251,8 @@ function WorkoutCard({
   onEditExercise: (ex: Exercise) => void
   onDeleteExercise: (id: string) => void
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
   return (
     <Card className="overflow-hidden">
       {/* Header */}
@@ -288,9 +303,20 @@ function WorkoutCard({
             <Button variant="ghost" size="sm" onClick={onEdit}>
               <Pencil size={14} />
             </Button>
-            <Button variant="ghost" size="sm" onClick={onDelete} className="hover:text-error">
-              <Trash2 size={14} />
-            </Button>
+            {confirmDelete ? (
+              <div className="flex gap-1">
+                <Button variant="danger" size="sm" onClick={() => { onDelete(); setConfirmDelete(false) }}>
+                  Supprimer
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
+                  Annuler
+                </Button>
+              </div>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(true)} className="hover:text-error">
+                <Trash2 size={14} />
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -331,7 +357,6 @@ export default function Program() {
   }
 
   const handleDeleteWorkout = async (id: string) => {
-    if (!confirm('Supprimer cette séance et tous ses exercices ?')) return
     const error = await deleteWorkout(id)
     if (error) add(error.message, 'error')
     if (expandedId === id) setExpandedId(null)
@@ -424,6 +449,7 @@ export default function Program() {
 
       {/* Edit workout modal */}
       <WorkoutModal
+        key={editWorkout?.id ?? 'none'}
         open={!!editWorkout}
         onClose={() => setEditWorkout(null)}
         initial={editWorkout ? {
@@ -444,6 +470,7 @@ export default function Program() {
 
       {/* Edit exercise modal */}
       <ExerciseModal
+        key={editExercise?.id ?? 'none'}
         open={!!editExercise}
         onClose={() => setEditExercise(null)}
         initial={editExercise ? {
