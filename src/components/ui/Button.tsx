@@ -21,7 +21,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       lg: 'px-8 py-4 text-lg w-full',
     }
     return (
-      <button ref={ref} className={cn(base, variants[variant], sizes[size], className)} {...props}>
+      <button ref={ref} type="button" className={cn(base, variants[variant], sizes[size], className)} {...props}>
         {children}
       </button>
     )

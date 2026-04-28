@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '../../lib/utils'
@@ -12,9 +12,15 @@ interface ModalProps {
 }
 
 export function Modal({ open, onClose, title, children, className }: ModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden'
-    else document.body.style.overflow = ''
+    if (open) {
+      document.body.style.overflow = 'hidden'
+      setTimeout(() => panelRef.current?.focus(), 50)
+    } else {
+      document.body.style.overflow = ''
+    }
     return () => { document.body.style.overflow = '' }
   }, [open])
 
@@ -28,8 +34,10 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
             onClick={onClose}
           />
           <motion.div
+            ref={panelRef}
+            tabIndex={-1}
             className={cn(
-              'fixed inset-x-0 bottom-0 z-50 bg-surface rounded-t-modal p-6 pb-safe max-h-[90vh] overflow-y-auto',
+              'fixed inset-x-0 bottom-0 z-50 bg-surface rounded-t-modal p-6 pb-safe max-h-[90vh] overflow-y-auto outline-none',
               className
             )}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
@@ -37,7 +45,7 @@ export function Modal({ open, onClose, title, children, className }: ModalProps)
           >
             <div className="flex items-center justify-between mb-4">
               {title && <h2 className="text-lg font-bold text-text">{title}</h2>}
-              <button onClick={onClose} className="ml-auto text-muted hover:text-text p-1">
+              <button type="button" aria-label="Fermer" onClick={onClose} className="ml-auto text-muted hover:text-text p-1">
                 <X size={20} />
               </button>
             </div>

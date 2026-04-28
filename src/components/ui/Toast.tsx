@@ -8,6 +8,7 @@ interface ToastItem {
   id: string
   message: string
   type: ToastType
+  timeoutId: ReturnType<typeof setTimeout>
 }
 
 interface ToastStore {
@@ -20,10 +21,17 @@ export const useToast = create<ToastStore>((set) => ({
   toasts: [],
   add: (message, type = 'info') => {
     const id = Math.random().toString(36).slice(2)
-    set((s) => ({ toasts: [...s.toasts, { id, message, type }] }))
-    setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), 3000)
+    const timeoutId = setTimeout(
+      () => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+      3000
+    )
+    set((s) => ({ toasts: [...s.toasts, { id, message, type, timeoutId }] }))
   },
-  remove: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+  remove: (id) => set((s) => {
+    const toast = s.toasts.find((t) => t.id === id)
+    if (toast) clearTimeout(toast.timeoutId)
+    return { toasts: s.toasts.filter((t) => t.id !== id) }
+  }),
 }))
 
 export function ToastContainer() {
