@@ -4,6 +4,7 @@ import { PageHeader } from '../components/layout/PageHeader'
 import { Button, Card, Input, Textarea, Modal, Tabs } from '../components/ui'
 import { useToast } from '../components/ui/Toast'
 import { OneRMChart, WeeklyVolumeChart } from '../components/progress/PerformanceChart'
+import { PhotoTimeline } from '../components/progress/PhotoTimeline'
 import { BodyChart } from '../components/progress/BodyChart'
 import { usePerformanceData } from '../hooks/usePerformanceData'
 import { useBodyMetrics } from '../hooks/useBodyMetrics'
@@ -199,14 +200,9 @@ function BodyTab() {
   )
 }
 
-// ---- Photos Tab (stub — full implementation in Task 7.3) ----
+// ---- Photos Tab ----
 function PhotosTab() {
-  return (
-    <div className="text-center py-16">
-      <p className="text-muted">Photos de progression</p>
-      <p className="text-muted text-sm mt-1">Disponible prochainement</p>
-    </div>
-  )
+  return <PhotoTimeline />
 }
 
 // ---- Main Progress Page ----
