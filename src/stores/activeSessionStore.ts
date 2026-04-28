@@ -65,7 +65,7 @@ export const useActiveSessionStore = create<ActiveSessionStore>()(
             ...s.sets,
             {
               ...setData,
-              id: Math.random().toString(36).slice(2),
+              id: crypto.randomUUID(),
               loggedAt: new Date().toISOString(),
             },
           ],

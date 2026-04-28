@@ -5,13 +5,10 @@ function getCtx(): AudioContext {
   return ctx
 }
 
-export function playTimerEnd(): void {
+export async function playTimerEnd(): Promise<void> {
   try {
     const audioCtx = getCtx()
-    // Resume context if suspended (browser autoplay policy)
-    if (audioCtx.state === 'suspended') {
-      audioCtx.resume()
-    }
+    if (audioCtx.state === 'suspended') await audioCtx.resume()
     const oscillator = audioCtx.createOscillator()
     const gain = audioCtx.createGain()
     oscillator.connect(gain)
@@ -23,14 +20,14 @@ export function playTimerEnd(): void {
     oscillator.start(audioCtx.currentTime)
     oscillator.stop(audioCtx.currentTime + 0.6)
   } catch {
-    // AudioContext not available (SSR, etc.)
+    // AudioContext not available
   }
 }
 
-export function playSetConfirm(): void {
+export async function playSetConfirm(): Promise<void> {
   try {
     const audioCtx = getCtx()
-    if (audioCtx.state === 'suspended') audioCtx.resume()
+    if (audioCtx.state === 'suspended') await audioCtx.resume()
     const oscillator = audioCtx.createOscillator()
     const gain = audioCtx.createGain()
     oscillator.connect(gain)

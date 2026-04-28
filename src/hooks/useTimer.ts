@@ -8,6 +8,9 @@ export function useCountdown(endsAt: number | null, onComplete?: () => void) {
   const [remaining, setRemaining] = useState(0)
   const rafRef = useRef<number | null>(null)
   const completedRef = useRef(false)
+  const onCompleteRef = useRef(onComplete)
+
+  useEffect(() => { onCompleteRef.current = onComplete })
 
   useEffect(() => {
     if (!endsAt) {
@@ -25,7 +28,7 @@ export function useCountdown(endsAt: number | null, onComplete?: () => void) {
         rafRef.current = requestAnimationFrame(tick)
       } else if (!completedRef.current) {
         completedRef.current = true
-        onComplete?.()
+        onCompleteRef.current?.()
       }
     }
 
@@ -34,7 +37,7 @@ export function useCountdown(endsAt: number | null, onComplete?: () => void) {
     return () => {
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
     }
-  }, [endsAt]) // intentionally omit onComplete to avoid re-subscribing on every render
+  }, [endsAt])
 
   return remaining
 }
@@ -43,7 +46,10 @@ export function useCountdown(endsAt: number | null, onComplete?: () => void) {
  * Measures elapsed seconds since startedAt (ISO string).
  */
 export function useStopwatch(startedAt: string | null): number {
-  const [elapsed, setElapsed] = useState(0)
+  const [elapsed, setElapsed] = useState(() => {
+    if (!startedAt) return 0
+    return Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)
+  })
 
   useEffect(() => {
     if (!startedAt) { setElapsed(0); return }
