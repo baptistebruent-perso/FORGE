@@ -88,6 +88,8 @@ export default function Session() {
 
   // Initialize or resume session
   useEffect(() => {
+    let cancelled = false
+
     const init = async () => {
       setLoading(true)
 
@@ -98,6 +100,7 @@ export default function Session() {
           .select('*')
           .eq('workout_id', store.workoutId)
           .order('order_index')
+        if (cancelled) return
         setExercises((exos ?? []) as Exercise[])
         setLoading(false)
         return
@@ -111,6 +114,7 @@ export default function Session() {
       }
 
       const { data: { user } } = await supabase.auth.getUser()
+      if (cancelled) return
       if (!user) { navigate('/'); return }
 
       // Fetch workout + exercises
@@ -120,6 +124,7 @@ export default function Session() {
         .eq('id', workoutIdParam)
         .single()
 
+      if (cancelled) return
       if (!workout) {
         add('Séance introuvable', 'error')
         navigate('/')
@@ -131,7 +136,6 @@ export default function Session() {
       const sortedExercises = [...rawExercises].sort(
         (a, b) => a.order_index - b.order_index
       )
-      setExercises(sortedExercises)
 
       // Create session in DB
       const { data: session, error } = await supabase
@@ -140,17 +144,20 @@ export default function Session() {
         .select()
         .single()
 
+      if (cancelled) return
       if (error || !session) {
         add('Erreur création séance', 'error')
         navigate('/')
         return
       }
 
+      setExercises(sortedExercises)
       store.startSession(session.id, workoutIdParam, workout.name)
       setLoading(false)
     }
 
     init()
+    return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workoutIdParam])
 
@@ -215,7 +222,7 @@ export default function Session() {
         const prInfo: PRInfo = { exerciseName: currentExercise.name, type: prType, value: prValue }
         setCurrentPR(prInfo)
         setSessionPRs((prev) => [...prev, prInfo])
-        haptic.pr()
+        // haptic.pr() is triggered by PRCelebration component — don't call here
       } else {
         playSetConfirm()
         haptic.success()
