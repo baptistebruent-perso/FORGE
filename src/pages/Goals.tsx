@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { differenceInDays } from 'date-fns'
 import { Target, Trophy, Plus, Trash2 } from 'lucide-react'
 import { Screen } from '../components/layout/Screen'
 import { PageHeader } from '../components/layout/PageHeader'
@@ -46,11 +47,12 @@ function GoalProgress({ goal }: { goal: Goal }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      {goal.deadline && (
-        <p className="text-muted text-xs mt-1">
-          Échéance : {new Date(goal.deadline).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-        </p>
-      )}
+      {goal.deadline && (() => {
+        const daysLeft = differenceInDays(new Date(goal.deadline), new Date())
+        return daysLeft >= 0
+          ? <p className="text-muted text-xs mt-1">{daysLeft} jours restants</p>
+          : <p className="text-error text-xs mt-1">Échéance dépassée</p>
+      })()}
     </div>
   )
 }

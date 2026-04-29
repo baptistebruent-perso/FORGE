@@ -8,10 +8,13 @@ type BodyMetric = Database['public']['Tables']['body_metrics']['Row']
 
 const METRICS = [
   { key: 'weight_kg', label: 'Poids', unit: 'kg', color: '#B4FF39' },
-  { key: 'chest_cm', label: 'Poitrine', unit: 'cm', color: '#FF6B35' },
-  { key: 'waist_cm', label: 'Tour de taille', unit: 'cm', color: '#39FF88' },
-  { key: 'arm_cm', label: 'Bras', unit: 'cm', color: '#FFD700' },
-  { key: 'thigh_cm', label: 'Cuisse', unit: 'cm', color: '#00BFFF' },
+  { key: 'body_fat_pct', label: 'Masse grasse', unit: '%', color: '#FF6B35' },
+  { key: 'chest_cm', label: 'Poitrine', unit: 'cm', color: '#39FF88' },
+  { key: 'waist_cm', label: 'Tour de taille', unit: 'cm', color: '#FFD700' },
+  { key: 'hips_cm', label: 'Hanches', unit: 'cm', color: '#FF4757' },
+  { key: 'arm_cm', label: 'Bras', unit: 'cm', color: '#00BFFF' },
+  { key: 'thigh_cm', label: 'Cuisse', unit: 'cm', color: '#F472B6' },
+  { key: 'calf_cm', label: 'Mollet', unit: 'cm', color: '#A78BFA' },
 ] as const
 
 type MetricKey = (typeof METRICS)[number]['key']

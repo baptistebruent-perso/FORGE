@@ -38,7 +38,8 @@ export function useProgressPhotos() {
   }
 
   const deletePhoto = async (id: string, storagePath: string) => {
-    await supabase.storage.from('progress-photos').remove([storagePath])
+    const { error: storageError } = await supabase.storage.from('progress-photos').remove([storagePath])
+    if (storageError) console.warn('Storage delete failed for', storagePath, storageError.message)
     const { error } = await supabase.from('progress_photos').delete().eq('id', id)
     if (!error) await refetch()
     return error
