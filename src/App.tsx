@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ToastContainer } from './components/ui/Toast'
+import { OfflineBanner } from './components/ui/OfflineBanner'
 import { BottomNav } from './components/layout/BottomNav'
 import Auth from './pages/Auth'
 import Home from './pages/Home'
@@ -49,6 +50,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
+      <OfflineBanner />
       <ToastContainer />
       <AppRoutes />
     </AuthProvider>
