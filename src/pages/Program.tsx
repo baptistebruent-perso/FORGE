@@ -262,14 +262,24 @@ function WorkoutCard({
 
   const toggleSuperset = async (exerciseA: Exercise, exerciseB: Exercise, enabled: boolean) => {
     if (enabled) {
-      const existingGroups = workout.exercises
-        .map((e: Exercise) => e.superset_group)
-        .filter((g: number | null): g is number => g !== null)
-      const newGroup = existingGroups.length > 0 ? Math.max(...existingGroups) + 1 : 1
-      await updateExercise(exerciseA.id, { superset_group: newGroup })
-      await updateExercise(exerciseB.id, { superset_group: newGroup })
+      // If A is already in a group → extend it to include B (triset, etc.)
+      // If B is already in a group → extend it to include A
+      // Otherwise → create a new group
+      const existingGroup = exerciseA.superset_group ?? exerciseB.superset_group
+      if (existingGroup !== null) {
+        await updateExercise(exerciseA.id, { superset_group: existingGroup })
+        await updateExercise(exerciseB.id, { superset_group: existingGroup })
+      } else {
+        const existingGroups = workout.exercises
+          .map((e: Exercise) => e.superset_group)
+          .filter((g: number | null): g is number => g !== null)
+        const newGroup = existingGroups.length > 0 ? Math.max(...existingGroups) + 1 : 1
+        await updateExercise(exerciseA.id, { superset_group: newGroup })
+        await updateExercise(exerciseB.id, { superset_group: newGroup })
+      }
     } else {
-      await updateExercise(exerciseA.id, { superset_group: null })
+      // Only remove exerciseB from the group (exerciseA stays)
+      // This way disabling B-C on a triset A+B+C leaves A+B as superset
       await updateExercise(exerciseB.id, { superset_group: null })
     }
   }
