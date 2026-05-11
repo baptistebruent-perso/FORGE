@@ -214,9 +214,14 @@ function ExerciseRow({
       <div className="flex-1 min-w-0">
         <p className="text-text font-semibold text-sm truncate">
           {exercise.name}
-          {exercise.superset_group !== null && (
-            <span className="text-xs font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded ml-1">SS</span>
-          )}
+          {exercise.superset_group !== null && (() => {
+            const groupSize = workout.exercises.filter(e => e.superset_group === exercise.superset_group).length
+            return (
+              <span className="text-xs font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded ml-1">
+                {groupSize >= 3 ? 'TS' : 'SS'}
+              </span>
+            )
+          })()}
         </p>
         <p className="text-muted text-xs">
           {exercise.target_sets} × {exercise.target_reps_min}–{exercise.target_reps_max} · {exercise.target_rest_seconds}s
@@ -318,19 +323,23 @@ function WorkoutCard({
                   />
                   {index < workout.exercises.length - 1 && (() => {
                     const next = workout.exercises[index + 1]
-                    const isSuperset = exercise.superset_group !== null && exercise.superset_group === next.superset_group
+                    const isLinked = exercise.superset_group !== null && exercise.superset_group === next.superset_group
+                    const groupSize = isLinked
+                      ? workout.exercises.filter(e => e.superset_group === exercise.superset_group).length
+                      : 0
+                    const groupLabel = groupSize >= 3 ? '⚡ TRISET' : '⚡ SUPERSET'
                     return (
                       <div key={`ss-${exercise.id}`} className="flex justify-center my-1">
                         <button
                           type="button"
-                          onClick={() => toggleSuperset(exercise, next, !isSuperset)}
+                          onClick={() => toggleSuperset(exercise, next, !isLinked)}
                           className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border transition-colors ${
-                            isSuperset
+                            isLinked
                               ? 'border-accent text-accent bg-accent/10'
                               : 'border-border text-muted hover:border-muted'
                           }`}
                         >
-                          {isSuperset ? '⚡ SUPERSET' : '+ superset'}
+                          {isLinked ? groupLabel : '+ superset'}
                         </button>
                       </div>
                     )
