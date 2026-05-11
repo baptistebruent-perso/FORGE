@@ -86,6 +86,33 @@ export default function Session() {
     (s) => s.exerciseTemplateId === currentExercise?.id
   )
 
+  // Superset: all exercises sharing the same group as currentExercise
+  const supersetGroup: Exercise[] = (() => {
+    if (!currentExercise || currentExercise.superset_group === null) {
+      return currentExercise ? [currentExercise] : []
+    }
+    return exercises.filter(e => e.superset_group === currentExercise.superset_group)
+  })()
+  const isSuperset = supersetGroup.length > 1
+
+  // Which exercise within the superset is being logged right now (0 = first)
+  const [supersetStep, setSupersetStep] = useState(0)
+
+  // The exercise currently being logged
+  const activeExercise = supersetGroup[supersetStep] ?? currentExercise
+
+  // Sets already logged for the active exercise this session
+  const setsForActive = store.sets.filter(s => s.exerciseTemplateId === activeExercise?.id)
+
+  // Completed rounds = minimum sets logged across all exercises in the group
+  const completedRounds = isSuperset
+    ? Math.min(...supersetGroup.map(e => store.sets.filter(s => s.exerciseTemplateId === e.id).length))
+    : setsForActive.length
+
+  // All sets done when completed rounds reaches target
+  const allSetsDone = activeExercise !== null && currentExercise !== null &&
+    completedRounds >= currentExercise.target_sets
+
   // Initialize or resume session
   useEffect(() => {
     let cancelled = false
@@ -167,16 +194,20 @@ export default function Session() {
     fetchLastSets(currentExercise.id, store.sessionId).then(setLastSets)
   }, [currentExercise?.id, store.sessionId])
 
+  useEffect(() => {
+    setSupersetStep(0)
+  }, [store.currentExerciseIndex])
+
   // Handle set validation
   const handleValidateSet = async (weight: number, reps: number) => {
-    if (!currentExercise || !store.sessionId) return
+    if (!activeExercise || !store.sessionId) return
 
-    const setNumber = setsForCurrentExercise.length + 1
+    const setsForThisExercise = store.sets.filter(s => s.exerciseTemplateId === activeExercise.id)
+    const setNumber = setsForThisExercise.length + 1
 
-    // Log in store
     store.logSet({
-      exerciseTemplateId: currentExercise.id,
-      exerciseName: currentExercise.name,
+      exerciseTemplateId: activeExercise.id,
+      exerciseName: activeExercise.name,
       setNumber,
       reps,
       weight,
@@ -184,11 +215,10 @@ export default function Session() {
       completed: true,
     })
 
-    // Persist to Supabase
     await supabase.from('session_sets').insert({
       session_id: store.sessionId,
-      exercise_template_id: currentExercise.id,
-      exercise_name: currentExercise.name,
+      exercise_template_id: activeExercise.id,
+      exercise_name: activeExercise.name,
       set_number: setNumber,
       reps,
       weight,
@@ -198,39 +228,37 @@ export default function Session() {
     // PR check
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const records = await fetchCurrentPRs(currentExercise.name, user.id)
+      const records = await fetchCurrentPRs(activeExercise.name, user.id)
       const result = checkPR(weight, reps, records)
-
       if (hasAnyPR(result)) {
-        const prType = result.isMaxWeight ? 'max_weight'
-          : result.isMaxReps ? 'max_reps'
-          : '1rm_estimated'
-        const prValue = result.isMaxWeight ? weight
-          : result.isMaxReps ? reps
-          : result.new1RM
-
-        // Save PR to DB
+        const prType = result.isMaxWeight ? 'max_weight' : result.isMaxReps ? 'max_reps' : '1rm_estimated'
+        const prValue = result.isMaxWeight ? weight : result.isMaxReps ? reps : result.new1RM
         await supabase.from('personal_records').insert({
           user_id: user.id,
-          exercise_name: currentExercise.name,
+          exercise_name: activeExercise.name,
           type: prType,
           value: prValue,
           reps,
           session_id: store.sessionId,
         })
-
-        const prInfo: PRInfo = { exerciseName: currentExercise.name, type: prType, value: prValue }
+        const prInfo: PRInfo = { exerciseName: activeExercise.name, type: prType, value: prValue }
         setCurrentPR(prInfo)
-        setSessionPRs((prev) => [...prev, prInfo])
-        // haptic.pr() is triggered by PRCelebration component — don't call here
+        setSessionPRs(prev => [...prev, prInfo])
       } else {
         playSetConfirm()
         haptic.success()
       }
     }
 
-    // Start rest timer
-    const restDuration = currentExercise.target_rest_seconds ?? store.restTimerDuration
+    // Superset: move to next exercise in group without rest
+    if (isSuperset && supersetStep < supersetGroup.length - 1) {
+      setSupersetStep(prev => prev + 1)
+      return
+    }
+
+    // Last in group (or solo): reset step and start rest timer
+    setSupersetStep(0)
+    const restDuration = currentExercise?.target_rest_seconds ?? store.restTimerDuration
     store.startRestTimer(restDuration)
   }
 
@@ -254,11 +282,6 @@ export default function Session() {
       setShowRecap(true)
     }
   }
-
-  // Check if all sets for current exercise are done
-  const allSetsForCurrentExerciseDone =
-    currentExercise !== null &&
-    setsForCurrentExercise.length >= currentExercise.target_sets
 
   // Handle finish session
   const handleFinish = async (mood: number, notes: string) => {
@@ -349,7 +372,7 @@ export default function Session() {
                   <div className="flex items-center gap-2">
                     {isActive && (
                       <span className="text-xs text-accent font-bold">
-                        {sets.length}/{exercise.target_sets}
+                        {isSuperset ? completedRounds : sets.length}/{exercise.target_sets}
                       </span>
                     )}
                     {expandedExercise === index ? <ChevronUp size={16} className="text-muted" /> : <ChevronDown size={16} className="text-muted" />}
@@ -378,17 +401,41 @@ export default function Session() {
                     )}
 
                     {/* Set input — only for active exercise, only if not all sets done */}
-                    {isActive && !allSetsForCurrentExerciseDone && !store.restTimerActive && (
-                      <SetInput
-                        setNumber={sets.length + 1}
-                        defaultWeight={sets.length > 0 ? sets[sets.length - 1].weight : (lastSets[0]?.weight ?? null)}
-                        defaultReps={sets.length > 0 ? sets[sets.length - 1].reps : (lastSets[0]?.reps ?? null)}
-                        onValidate={handleValidateSet}
-                      />
+                    {isActive && !allSetsDone && !store.restTimerActive && (
+                      <>
+                        {isSuperset && (
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-xs font-bold text-accent">⚡ SUPERSET</span>
+                            <div className="flex gap-1">
+                              {supersetGroup.map((e, i) => (
+                                <span
+                                  key={e.id}
+                                  className={`text-xs px-2 py-0.5 rounded-full font-bold transition-colors ${
+                                    i === supersetStep
+                                      ? 'bg-accent text-bg'
+                                      : 'bg-surface border border-border text-muted'
+                                  }`}
+                                >
+                                  {e.name.length > 10 ? e.name.slice(0, 10) + '…' : e.name}
+                                </span>
+                              ))}
+                            </div>
+                            <span className="text-muted text-xs ml-auto">
+                              Série {completedRounds + 1}/{currentExercise?.target_sets}
+                            </span>
+                          </div>
+                        )}
+                        <SetInput
+                          setNumber={setsForActive.length + 1}
+                          defaultWeight={setsForActive.length > 0 ? setsForActive[setsForActive.length - 1].weight : (lastSets[0]?.weight ?? null)}
+                          defaultReps={setsForActive.length > 0 ? setsForActive[setsForActive.length - 1].reps : (lastSets[0]?.reps ?? null)}
+                          onValidate={handleValidateSet}
+                        />
+                      </>
                     )}
 
                     {/* All sets done for this exercise */}
-                    {isActive && allSetsForCurrentExerciseDone && !store.restTimerActive && (
+                    {isActive && allSetsDone && !store.restTimerActive && (
                       <div className="mt-2">
                         <p className="text-success text-sm font-bold mb-3">
                           ✓ Exercice terminé ({exercise.target_sets} séries)
