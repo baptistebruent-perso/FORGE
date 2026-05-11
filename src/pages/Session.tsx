@@ -82,9 +82,11 @@ export default function Session() {
   const [expandedExercise, setExpandedExercise] = useState<number | null>(null)
 
   const currentExercise = exercises[store.currentExerciseIndex] ?? null
-  const setsForCurrentExercise = store.sets.filter(
+  // kept for reference — individual exercise sets used in pills below
+  const _setsForCurrentExercise = store.sets.filter(
     (s) => s.exerciseTemplateId === currentExercise?.id
   )
+  void _setsForCurrentExercise // unused; superset flow uses setsForActive
 
   // Superset: all exercises sharing the same group as currentExercise
   const supersetGroup: Exercise[] = (() => {
