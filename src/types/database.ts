@@ -10,9 +10,9 @@ export interface Database {
         Relationships: []
       }
       exercises_template: {
-        Row: { id: string; workout_id: string; name: string; order_index: number; target_sets: number; target_reps_min: number; target_reps_max: number; target_rest_seconds: number; rest_after_exercise_seconds: number; notes: string | null }
-        Insert: { id?: string; workout_id: string; name: string; order_index?: number; target_sets?: number; target_reps_min?: number; target_reps_max?: number; target_rest_seconds?: number; rest_after_exercise_seconds?: number; notes?: string | null }
-        Update: { id?: string; workout_id?: string; name?: string; order_index?: number; target_sets?: number; target_reps_min?: number; target_reps_max?: number; target_rest_seconds?: number; rest_after_exercise_seconds?: number; notes?: string | null }
+        Row: { id: string; workout_id: string; name: string; order_index: number; target_sets: number; target_reps_min: number; target_reps_max: number; target_rest_seconds: number; rest_after_exercise_seconds: number; notes: string | null; superset_group: number | null }
+        Insert: { id?: string; workout_id: string; name: string; order_index?: number; target_sets?: number; target_reps_min?: number; target_reps_max?: number; target_rest_seconds?: number; rest_after_exercise_seconds?: number; notes?: string | null; superset_group?: number | null }
+        Update: { id?: string; workout_id?: string; name?: string; order_index?: number; target_sets?: number; target_reps_min?: number; target_reps_max?: number; target_rest_seconds?: number; rest_after_exercise_seconds?: number; notes?: string | null; superset_group?: number | null }
         Relationships: [
           {
             foreignKeyName: "exercises_template_workout_id_fkey"
