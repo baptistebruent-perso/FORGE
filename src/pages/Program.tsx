@@ -212,7 +212,12 @@ function ExerciseRow({
   return (
     <div className="flex items-center justify-between py-2 border-b border-border last:border-0">
       <div className="flex-1 min-w-0">
-        <p className="text-text font-semibold text-sm truncate">{exercise.name}</p>
+        <p className="text-text font-semibold text-sm truncate">
+          {exercise.name}
+          {exercise.superset_group !== null && (
+            <span className="text-xs font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded ml-1">SS</span>
+          )}
+        </p>
         <p className="text-muted text-xs">
           {exercise.target_sets} × {exercise.target_reps_min}–{exercise.target_reps_max} · {exercise.target_rest_seconds}s
         </p>
@@ -240,6 +245,7 @@ function WorkoutCard({
   onAddExercise,
   onEditExercise,
   onDeleteExercise,
+  updateExercise,
 }: {
   workout: WorkoutWithExercises
   expanded: boolean
@@ -250,8 +256,23 @@ function WorkoutCard({
   onAddExercise: () => void
   onEditExercise: (ex: Exercise) => void
   onDeleteExercise: (id: string) => void
+  updateExercise: (id: string, updates: Database['public']['Tables']['exercises_template']['Update']) => Promise<unknown>
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
+
+  const toggleSuperset = async (exerciseA: Exercise, exerciseB: Exercise, enabled: boolean) => {
+    if (enabled) {
+      const existingGroups = workout.exercises
+        .map((e: Exercise) => e.superset_group)
+        .filter((g: number | null): g is number => g !== null)
+      const newGroup = existingGroups.length > 0 ? Math.max(...existingGroups) + 1 : 1
+      await updateExercise(exerciseA.id, { superset_group: newGroup })
+      await updateExercise(exerciseB.id, { superset_group: newGroup })
+    } else {
+      await updateExercise(exerciseA.id, { superset_group: null })
+      await updateExercise(exerciseB.id, { superset_group: null })
+    }
+  }
 
   return (
     <Card className="overflow-hidden">
@@ -279,13 +300,33 @@ function WorkoutCard({
           {/* Exercise list */}
           {workout.exercises.length > 0 ? (
             <div className="mb-3">
-              {workout.exercises.map((ex) => (
-                <ExerciseRow
-                  key={ex.id}
-                  exercise={ex}
-                  onEdit={() => onEditExercise(ex)}
-                  onDelete={() => onDeleteExercise(ex.id)}
-                />
+              {workout.exercises.map((exercise, index) => (
+                <div key={exercise.id}>
+                  <ExerciseRow
+                    exercise={exercise}
+                    onEdit={() => onEditExercise(exercise)}
+                    onDelete={() => onDeleteExercise(exercise.id)}
+                  />
+                  {index < workout.exercises.length - 1 && (() => {
+                    const next = workout.exercises[index + 1]
+                    const isSuperset = exercise.superset_group !== null && exercise.superset_group === next.superset_group
+                    return (
+                      <div key={`ss-${exercise.id}`} className="flex justify-center my-1">
+                        <button
+                          type="button"
+                          onClick={() => toggleSuperset(exercise, next, !isSuperset)}
+                          className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full border transition-colors ${
+                            isSuperset
+                              ? 'border-accent text-accent bg-accent/10'
+                              : 'border-border text-muted hover:border-muted'
+                          }`}
+                        >
+                          {isSuperset ? '⚡ SUPERSET' : '+ superset'}
+                        </button>
+                      </div>
+                    )
+                  })()}
+                </div>
               ))}
             </div>
           ) : (
@@ -434,6 +475,7 @@ export default function Program() {
               onAddExercise={() => setAddExerciseWorkoutId(workout.id)}
               onEditExercise={(ex) => setEditExercise(ex)}
               onDeleteExercise={handleDeleteExercise}
+              updateExercise={updateExercise}
             />
           ))}
         </div>
