@@ -202,10 +202,12 @@ function ExerciseModal({
 // ---- Exercise item row ----
 function ExerciseRow({
   exercise,
+  groupSize,
   onEdit,
   onDelete,
 }: {
   exercise: Exercise
+  groupSize: number
   onEdit: () => void
   onDelete: () => void
 }) {
@@ -214,14 +216,11 @@ function ExerciseRow({
       <div className="flex-1 min-w-0">
         <p className="text-text font-semibold text-sm truncate">
           {exercise.name}
-          {exercise.superset_group !== null && (() => {
-            const groupSize = workout.exercises.filter(e => e.superset_group === exercise.superset_group).length
-            return (
-              <span className="text-xs font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded ml-1">
-                {groupSize >= 3 ? 'TS' : 'SS'}
-              </span>
-            )
-          })()}
+          {exercise.superset_group !== null && (
+            <span className="text-xs font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded ml-1">
+              {groupSize >= 3 ? 'TS' : 'SS'}
+            </span>
+          )}
         </p>
         <p className="text-muted text-xs">
           {exercise.target_sets} × {exercise.target_reps_min}–{exercise.target_reps_max} · {exercise.target_rest_seconds}s
@@ -318,6 +317,7 @@ function WorkoutCard({
                 <div key={exercise.id}>
                   <ExerciseRow
                     exercise={exercise}
+                    groupSize={exercise.superset_group !== null ? workout.exercises.filter(e => e.superset_group === exercise.superset_group).length : 0}
                     onEdit={() => onEditExercise(exercise)}
                     onDelete={() => onDeleteExercise(exercise.id)}
                   />
